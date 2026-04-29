@@ -2,7 +2,7 @@ services:
 
    web:
      build: .
-     image: ghcr.io/huynongquoc05/DeployLLM_Interviewer:latest
+     image: ghcr.io/huynongquoc05/deployllm_interviewer:latest
      environment:
        MONGO_URI: mongodb://host.docker.internal:27017/
 

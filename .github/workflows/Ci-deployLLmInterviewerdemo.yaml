@@ -85,7 +85,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/huynongquoc05/DeployLLM_Interviewer:latest
+          tags: ghcr.io/huynongquoc05/deployllm_interviewer:latest
 
   # Job4 Deploy
   deploy:
@@ -103,5 +103,5 @@ jobs:
             cd /home/huynq/DeployLLM_Interviewer
             git pull origin main
             docker compose down
-            docker pull ghcr.io/huynongquoc05/DeployLLM_Interviewer:latest 
+            docker pull ghcr.io/huynongquoc05/deployllm_interviewer:latest 
             docker compose up -d --scale web=2
