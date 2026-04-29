@@ -1,0 +1,107 @@
+name: Ci-deployLLmInterviewerdemo
+
+
+on:
+  push:
+    branches:
+      ["main", "master"]
+  pull_request:
+    branches:
+      ["main", "master"]
+
+jobs:
+  Check_code:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kéo mã nguồn về máy chủ
+        uses: actions/checkout@v4
+      - name: Thiết lập Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: 'pip'
+      - name: cài flake8
+        run: pip install flake8
+
+      - name: Quét mã nguồn bằng Flake8
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+
+  #Job`2 Build_and_test
+  build_and_test:
+    needs: Check_code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kéo mã nguồn về máy chủ
+        uses: actions/checkout@v4
+
+      - name: Kiểm tra phiên bản Docker & Docker Compose
+        run: |
+          docker --version
+          docker compose version # Đã sửa: dùng dấu cách và chữ 'version'
+
+      - name: Giải mã file bảo mật từ Base64
+        run: |
+            echo "${{ secrets.ENV_B64 }}" | base64 --decode > .env
+            echo "${{ secrets.CREDENTIALS_B64 }}" | base64 --decode > credentials.json
+      - name: Build và khởi chạy hệ thống bằng Docker Compose
+        run: docker compose up -d --scale web=2
+
+      - name: Chờ hệ thống khởi động (30 giây)
+        run: sleep 30
+
+      - name: Kiểm tra trạng thái các Container
+        run: docker compose ps
+
+      - name: Kiểm tra kết nối Web (Ping thử Nginx)
+        run: curl -f http://localhost:8005 || exit 1
+
+      - name: In ra Log của Flask App (để debug nếu cần)
+        run: docker compose logs web
+
+      - name: Dọn dẹp (Tắt container)
+        run: docker compose down
+
+
+  # Lưu trữ Image:
+  push_image:
+    needs: build_and_test
+    runs-on: ubuntu-latest
+    permissions:
+        contents: read
+        packages: write
+    steps:
+      - name: kéo mã nguồn về máy chủ
+        uses: actions/checkout@v4
+      - name: Đăng nhập vào GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build và Push Docker Image lên GitHub Container Registry
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/huynongquoc05/DeployLLM_Interviewer:latest
+
+  # Job4 Deploy
+  deploy:
+    needs: push_image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kết nối ssh đến sver
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }} # Nếu dùng mật khẩu, đổi thành password: ${{ secrets.SERVER_PASSWORD }}
+          port: 8901
+          script: |
+            cd /home/huynq/DeployLLM_Interviewer
+            git pull origin main
+            docker compose down
+            docker pull ghcr.io/huynongquoc05/DeployLLM_Interviewer:latest 
+            docker compose up -d --scale web=2
