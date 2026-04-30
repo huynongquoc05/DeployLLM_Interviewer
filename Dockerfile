@@ -37,7 +37,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 COPY . .
 
-EXPOSE 8005
+EXPOSE 8080
 
 # Đã bỏ các dấu \ báo lỗi cú pháp trong mảng JSON
-CMD ["gunicorn", "-b", "0.0.0.0:8005", "app:app", "-k", "gthread", "--threads", "4", "--timeout", "300", "--limit-request-field_size", "65536", "--limit-request-line", "65536", "--access-logfile", "-", "--error-logfile", "-", "--capture-output", "--enable-stdio-inheritance"]
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app", "-k", "gthread", "--threads", "4", "--timeout", "300", "--limit-request-field_size", "65536", "--limit-request-line", "65536", "--access-logfile", "-", "--error-logfile", "-", "--capture-output", "--enable-stdio-inheritance"]

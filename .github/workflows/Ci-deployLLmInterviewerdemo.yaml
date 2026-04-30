@@ -1,6 +1,5 @@
 name: Ci-deployLLmInterviewerdemo
 
-
 on:
   push:
     branches:
@@ -27,11 +26,16 @@ jobs:
       - name: Quét mã nguồn bằng Flake8
         run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
-
-  #Job`2 Build_and_test
-  build_and_test:
+  # Job 2: Build, test and push image to registry
+  build_test_and_push_image:
     needs: Check_code
     runs-on: ubuntu-latest
+
+    # [SỬA LỖI BẢO MẬT]: Cấp quyền để Github Token được phép push lên Packages
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - name: Kéo mã nguồn về máy chủ
         uses: actions/checkout@v4
@@ -39,14 +43,16 @@ jobs:
       - name: Kiểm tra phiên bản Docker & Docker Compose
         run: |
           docker --version
-          docker compose version # Đã sửa: dùng dấu cách và chữ 'version'
+          docker compose version
 
       - name: Giải mã file bảo mật từ Base64
         run: |
             echo "${{ secrets.ENV_B64 }}" | base64 --decode > .env
             echo "${{ secrets.CREDENTIALS_B64 }}" | base64 --decode > credentials.json
+
+      # [SỬA LOGIC]: Thêm --build để bắt buộc đóng gói Image mới
       - name: Build và khởi chạy hệ thống bằng Docker Compose
-        run: docker compose up -d --scale web=2
+        run: docker compose up --build -d --scale web=2
 
       - name: Chờ hệ thống khởi động (30 giây)
         run: sleep 30
@@ -60,36 +66,24 @@ jobs:
       - name: In ra Log của Flask App (để debug nếu cần)
         run: docker compose logs web
 
-      - name: Dọn dẹp (Tắt container)
-        run: docker compose down
-
-
-  # Lưu trữ Image:
-  push_image:
-    needs: build_and_test
-    runs-on: ubuntu-latest
-    permissions:
-        contents: read
-        packages: write
-    steps:
-      - name: kéo mã nguồn về máy chủ
-        uses: actions/checkout@v4
+      # Tối ưu: Nên Push Image TRƯỚC khi down container để tránh lỗi phát sinh
       - name: Đăng nhập vào GitHub Container Registry
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build và Push Docker Image lên GitHub Container Registry
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ghcr.io/huynongquoc05/deployllm_interviewer:latest
 
-  # Job4 Deploy
+      - name: push image
+        run: docker push ghcr.io/huynongquoc05/deployllm_interviewer:latest
+
+      - name: Dọn dẹp (Tắt container)
+        run: docker compose down
+
+  # Job 3: Deploy
   deploy:
-    needs: push_image
+    # [SỬA LỖI CHÍ MẠNG]: Gọi đúng tên Job 2
+    needs: build_test_and_push_image
     runs-on: ubuntu-latest
     steps:
       - name: Kết nối ssh đến sver
@@ -97,11 +91,13 @@ jobs:
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
-          key: ${{ secrets.SERVER_SSH_KEY }} # Nếu dùng mật khẩu, đổi thành password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
           port: 8901
           script: |
             cd /home/huynq/DeployLLM_Interviewer
             git pull origin main
             docker compose down
             docker pull ghcr.io/huynongquoc05/deployllm_interviewer:latest 
-            docker compose up -d --scale web=2
+            docker compose up -d --scale web=2 --no-build
+            sleep 50
+            curl -f http://localhost:8005 || exit 1
