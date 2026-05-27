@@ -7,8 +7,8 @@ Dự án tập trung vào việc đóng gói và triển khai tự động ứng
 - [Quick Start](#quick-start)
 - [1. Kiến trúc Đóng gói (Dockerization)](#1-kiến-trúc-đóng-gói-dockerization)
 - [2. Quy trình CI/CD (GitHub Actions)](#2-quy-trình-cicd-github-actions)
-- [3. Hướng dẫn chạy](#3-hướng-dẫn-chạy)
-- [5. Giám sát & Cảnh báo hệ thống (Monitoring & Alert Manager)](#5-giám-sát--cảnh-báo-hệ-thống-monitoring--alert-manager)
+
+- [4. Giám sát & Cảnh báo hệ thống (Monitoring & Alert Manager)](#4-giám-sát--cảnh-báo-hệ-thống-monitoring--alert-manager)
 
 <br><br><br>
 
@@ -44,7 +44,9 @@ Thực thi các lệnh sau để kéo Image đã đóng gói sẵn từ Registry
 ```bash
 # Kéo image mới nhất từ Github Container Registry
 docker pull ghcr.io/huynongquoc05/deployllm_interviewer:latest 
-
+docker network create backend_network || true
+docker network create frontend_network || true
+docker network create monitoring_network || true
 # Khởi chạy hệ thống, giới hạn tự động build và mở rộng 2 replica cho ứng dụng web
 docker compose up -d --scale web=2 --no-build
 ```
@@ -187,7 +189,6 @@ Kết nối SSH tới Server vật lý, đồng bộ tệp cấu hình mới và
             curl -f http://localhost:8005 || exit 1
 ```
 
-## 3. Hướng dẫn chạy
 
 ### A. Triển khai tự động (CI/CD)
 
@@ -206,7 +207,7 @@ on:
       - 'patch.json'
 ```
 
-## 5. Giám sát & Cảnh báo hệ thống (Monitoring & Alert Manager)
+## 3. Giám sát & Cảnh báo hệ thống (Monitoring & Alert Manager)
 
 Dự án được tích hợp sẵn hệ thống giám sát tự động để theo dõi sức khỏe của các Container và tài nguyên máy chủ thông qua Prometheus và Alertmanager. Khi tài nguyên vượt ngưỡng nguy hiểm, hệ thống sẽ tự động gửi email thông báo.
 
