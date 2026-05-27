@@ -3,6 +3,15 @@
 Dự án tập trung vào việc đóng gói và triển khai tự động ứng dụng phỏng vấn thông minh (sử dụng LangChain, FAISS, MongoDB ) lên hệ thống máy chủ vật lý hoặc cloud thông qua Docker và GitHub Actions.
 <img width="1640" height="870" alt="demo" src="https://github.com/user-attachments/assets/64152774-a191-4453-95d6-570995b8b140" />
 
+## 📌 Mục lục
+- [Quick Start](#quick-start)
+- [1. Kiến trúc Đóng gói (Dockerization)](#1-kiến-trúc-đóng-gói-dockerization)
+- [2. Quy trình CI/CD (GitHub Actions)](#2-quy-trình-cicd-github-actions)
+- [3. Hướng dẫn chạy](#3-hướng-dẫn-chạy)
+- [5. Giám sát & Cảnh báo hệ thống (Monitoring & Alert Manager)](#5-giám-sát--cảnh-báo-hệ-thống-monitoring--alert-manager)
+
+<br><br><br>
+
 # Quick Start
 
 **1. Tạo file biến môi trường (`.env`):**
@@ -183,53 +192,35 @@ Kết nối SSH tới Server vật lý, đồng bộ tệp cấu hình mới và
 ### A. Triển khai tự động (CI/CD)
 
 1. **Chuẩn bị Secrets:** Cấu hình các biến `ENV_B64`, `CREDENTIALS_B64`, `SERVER_HOST`, `SERVER_SSH_KEY` trong GitHub Repository.
-2. **Khởi chạy:** Mọi thao tác `git push` lên nhánh `main` hoặc `master` sẽ tự động kích hoạt toàn bộ quy trình trên.
+2. **Khởi chạy:** Mọi thao tác `git push` lên nhánh `main` sẽ tự động kích hoạt toàn bộ quy trình trên.
 ```yaml
 on:
   push:
     branches:
       ["main", "master"]
-  pull_request:
-    branches:
-      ["main", "master"]
+    paths-ignore:
+      - '**.md'         # Bỏ qua tất cả các file Markdown (bao gồm README.md)
+      - 'assets/**'     # Bỏ qua toàn bộ thay đổi trong thư mục assets
+      - 'images/**'     # Bỏ qua thư mục hình ảnh (nếu có)
+      - 'docs/**'       # Bỏ qua tài liệu dự án (nếu có)
+      - 'patch.json'
 ```
 
-# Quick Start
+## 5. Giám sát & Cảnh báo hệ thống (Monitoring & Alert Manager)
 
-**1. Tạo file biến môi trường (`.env`):**
-Tạo file `.env` tại thư mục gốc của dự án và điền các khóa API:
-```text
-GOOGLE_API_KEY="paste_your_api_key_here"
-GOOGLE_API_KEY1="paste_your_api_key_here"
-# ... các biến khác
-```
+Dự án được tích hợp sẵn hệ thống giám sát tự động để theo dõi sức khỏe của các Container và tài nguyên máy chủ thông qua Prometheus và Alertmanager. Khi tài nguyên vượt ngưỡng nguy hiểm, hệ thống sẽ tự động gửi email thông báo.
 
-**2. Tạo file xác thực Google (`credentials.json`):**
-Tạo file `credentials.json` tại thư mục gốc với cấu trúc:
-```json
-{
-  "web": {
-    "client_id": "",
-    "project_id": "",
-    "auth_uri": "",
-    "token_uri": "",
-    "auth_provider_x509_cert_url": "",
-    "client_secret": "",
-    "redirect_uris": [],
-    "javascript_origins": []
-  }
-}
-```
+### 5.1. Các bộ quy tắc cảnh báo (Alert Rules)
+Được cấu hình trong file `alert.rules.yml`, hệ thống theo dõi 2 chỉ số chính:
+- **Tổng RAM các Container (TongRamCacContainerCao):** Kích hoạt cảnh báo (Mức độ: `Critical`) nếu tổng RAM sử dụng (Working Set) của toàn bộ các container ngốn quá 1GB trong vòng 30 giây.
+- **CPU Máy chủ (HostCpuCao):** Kích hoạt cảnh báo (Mức độ: `Warning`) nếu CPU của server duy trì mức tải trên 80% (idle < 20%) liên tục trong 3 phút.
 
-**3. Kéo Image và Khởi chạy:**
-Thực thi các lệnh sau để kéo Image đã đóng gói sẵn từ Registry và khởi chạy dịch vụ:
-```bash
-# Kéo image mới nhất từ Github Container Registry
-docker pull ghcr.io/huynongquoc05/deployllm_interviewer:latest 
+### 5.2. Cấu hình gửi thông báo (Alertmanager)
+Khi các cảnh báo trên bị kích hoạt, Alertmanager (được định nghĩa trong `alertmanager.yml`) sẽ điều hướng thông tin và tự động gửi email đến quản trị viên.
 
-# Khởi chạy hệ thống, giới hạn tự động build và mở rộng 2 replica cho ứng dụng web
-docker compose up -d --scale web=2 --no-build
-```
-
-**4. Kiểm tra:**
-Truy cập ứng dụng tại địa chỉ `http://<IP_SERVER>:8005` hoặc `http://localhost:8005` (nếu chạy trên máy cá nhân).
+**Cách thiết lập:**
+Cơ chế gửi mail sử dụng máy chủ SMTP của Google. Để bảo mật thông tin, mật khẩu email không được ghi cứng vào code mà đọc từ biến môi trường.
+Bạn cần bổ sung biến sau vào file `.env` trước khi khởi chạy hệ thống giám sát:
+```env
+# Lưu ý: Đây là Mật khẩu ứng dụng (App Password) của Gmail, không phải mật khẩu đăng nhập thông thường
+APP_PASSWORD=your_gmail_app_password_here
