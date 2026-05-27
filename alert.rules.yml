@@ -1,0 +1,25 @@
+groups:
+  - name: tieu thu tai nguyen
+    rules:
+      # Luật 1: Cảnh báo TỔNG RAM của tất cả Container
+      - alert: TongRamCacContainerCao
+        # Lấy RAM thực dùng (working_set) của các container (bỏ qua các tiến trình không có tên),
+        # tính tổng lại (sum) xem có vượt 1GB (1073741824 bytes) không.
+        expr: sum(container_memory_working_set_bytes{name!=""}) > 1073741824
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          # Vì dùng hàm sum() nên chúng ta không còn biến {{ $labels.name }} (tên cụ thể) nữa
+          summary: "Cảnh báo: Tổng RAM Docker vượt 1GB!"
+          description: "Toàn bộ các container đang ngốn tổng cộng hơn 1GB RAM (Working Set) trong 30 giây qua."
+
+      # Luật 2: Cảnh báo CPU toàn máy chủ (Giữ nguyên của bạn)
+      - alert: HostCpuCao
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cảnh báo: CPU máy chủ quá tải!"
+          description: "CPU của máy chủ đã duy trì trên 90% trong 3 phút qua."

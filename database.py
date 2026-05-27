@@ -76,16 +76,9 @@ def init_db():
 # ===================================================================
 
 def create_user(email, name, password=None, google_id=None, avatar_url=None):
-    """
-    Tạo user mới
-    - Nếu có password: login_method = 'password'
-    - Nếu có google_id: login_method = 'google'
-    - Email luôn là UNIQUE
-    """
     with get_db() as conn:
         cursor = conn.cursor()
-
-        # Kiểm tra email đã tồn tại chưa
+        print("An user is being created with email:", email)
         cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
         if cursor.fetchone():
             raise ValueError(f"Email {email} đã được đăng ký")
@@ -101,8 +94,11 @@ def create_user(email, name, password=None, google_id=None, avatar_url=None):
               datetime.utcnow().isoformat(), login_method))
 
         user_id = cursor.lastrowid
-        return get_user_by_id(user_id)
 
+        # ✅ Query trong cùng connection, đảm bảo thấy row vừa insert
+        cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
 
 def get_user_by_email(email):
     """Lấy user theo email"""
@@ -150,10 +146,6 @@ def update_last_login(user_id):
 
 
 def link_google_account(user_id, google_id, avatar_url=None):
-    """
-    Liên kết tài khoản Google với user đã tồn tại
-    (Dùng khi user đăng ký bằng password trước, sau đó login bằng Google)
-    """
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute('''
@@ -162,6 +154,10 @@ def link_google_account(user_id, google_id, avatar_url=None):
             WHERE id = ?
         ''', (google_id, avatar_url, user_id))
 
+        # ✅ Trả về user ngay trong cùng connection
+        cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
 
 def update_password(user_id, new_password):
     """Cập nhật mật khẩu mới"""
@@ -200,5 +196,6 @@ def get_all_users():
 if __name__ == '__main__':
     init_db()
     all_users= get_all_users()
+    print(len(all_users))
     for user in all_users:
         print(user)

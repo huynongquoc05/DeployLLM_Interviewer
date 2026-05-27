@@ -271,6 +271,7 @@ def google_callback():
         if user:
             # User đã tồn tại với Google ID này
             login_user_session(user)
+            print("User đã tồn tại với Google ID, đăng nhập thành công:", user)
         else:
             # Kiểm tra email đã tồn tại chưa
             user = get_user_by_email(email)
@@ -278,8 +279,11 @@ def google_callback():
             if user:
                 # Email đã tồn tại (đăng ký bằng password trước đó)
                 # → Liên kết tài khoản Google
-                link_google_account(user['id'], google_id, avatar_url)
-                user = get_user_by_id(user['id'])  # Reload user
+                # link_google_account(user['id'], google_id, avatar_url)
+                # user = get_user_by_id(user['id'])  # Reload user
+                # Sau
+                user = link_google_account(user['id'], google_id, avatar_url)  # dùng kết quả trả về
+                print("Đã liên kết Google account cho user:", user)
                 login_user_session(user)
             else:
                 # Tạo user mới với Google

@@ -78,7 +78,9 @@ jobs:
         run: docker push ghcr.io/huynongquoc05/deployllm_interviewer:latest
 
       - name: Dọn dẹp (Tắt container)
-        run: docker compose down
+        run: | 
+          docker compose down
+          echo "Đã dọn dẹp các container cũ sau khi push image mới"
 
   # Job 3: Deploy
   deploy:

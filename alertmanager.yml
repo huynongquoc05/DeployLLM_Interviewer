@@ -1,0 +1,20 @@
+global:
+  # Cấu hình máy chủ thư điện tử (Dùng mặc định của Google)
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'huynongquoc05@gmail.com'
+  smtp_auth_username: 'huynongquoc05@gmail.com'
+  # LƯU Ý: Đây KHÔNG phải mật khẩu đăng nhập Gmail, mà là Mật khẩu ứng dụng (App Password)
+  #lấy APP_PASSWORD từ biến môi trường để tránh lộ thông tin nhạy cảm trong file cấu hình
+  smtp_auth_password: '{{ env "APP_PASSWORD" }}'
+  smtp_require_tls: true
+
+route:
+  # Bất cứ cảnh báo nào sinh ra cũng đẩy vào luồng gửi email này
+  receiver: 'gui_ve_email_cua_tao'
+
+receivers:
+  - name: 'gui_ve_email_cua_tao'
+    email_configs:
+      - to: 'chaubui753951@gmail.com'
+
+        send_resolved: true
