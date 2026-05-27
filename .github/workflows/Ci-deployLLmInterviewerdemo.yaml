@@ -4,9 +4,15 @@ on:
   push:
     branches:
       ["main", "master"]
-  pull_request:
-    branches:
-      ["main", "master"]
+    paths-ignore:
+      - '**.md'         # Bỏ qua tất cả các file Markdown (bao gồm README.md)
+      - 'assets/**'     # Bỏ qua toàn bộ thay đổi trong thư mục assets
+      - 'images/**'     # Bỏ qua thư mục hình ảnh (nếu có)
+      - 'docs/**'       # Bỏ qua tài liệu dự án (nếu có)
+      - 'patch.json'
+#  pull_request:
+#    branches:
+#      ["main", "master"]
 
 jobs:
   Check_code:
@@ -50,6 +56,11 @@ jobs:
             echo "${{ secrets.ENV_B64 }}" | base64 --decode > .env
             echo "${{ secrets.CREDENTIALS_B64 }}" | base64 --decode > credentials.json
 
+      - name: tạo mạng Docker
+        run: |
+          docker network create backend_network || true
+          docker network create frontend_network || true
+          docker network create monitoring_network || true
       # [SỬA LOGIC]: Thêm --build để bắt buộc đóng gói Image mới
       - name: Build và khởi chạy hệ thống bằng Docker Compose
         run: docker compose up --build -d --scale web=2
