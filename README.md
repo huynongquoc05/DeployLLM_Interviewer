@@ -72,24 +72,47 @@ Truy cập ứng dụng tại địa chỉ `http://<IP_SERVER>:8005` hoặc `htt
 
 ```yaml
 services:
-  web:
-    build: .
-    image: ghcr.io/huynongquoc05/deployllm_interviewer:latest
-    environment:
-      MONGO_URI: mongodb://host.docker.internal:27017/
-    env_file:
-      - .env
-    volumes:
-      - ./credentials.json:/app/credentials.json
 
-  nginx:
-    image: nginx:latest
-    ports:
-      - "8005:80"
-    volumes:
-      - ./Nginx.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      - web
+   web:
+     build: .
+     image: ghcr.io/huynongquoc05/deployllm_interviewer:latest
+#     environment:
+#       MONGO_URI: ${MONGO_URI}
+     env_file:
+       - .env
+     volumes:
+       - ./credentials.json:/app/credentials.json
+       - app_uploads:/app/uploads
+       - ./interviewer.db:/app/interviewer.db
+       - ./static:/app/static
+       - ./database.py:/app/database.py
+       - ./routes/auth.py:/app/routes/auth.py
+     networks:
+         - backend_network
+         - frontend_network
+
+   nginx:
+     image: nginx:latest
+     ports:
+       - "8005:80"
+     volumes:
+       - ./Nginx.conf:/etc/nginx/conf.d/default.conf
+       - ./static:/app/static
+     depends_on:
+       - web
+     networks:
+         - frontend_network
+
+volumes:
+    app_uploads:
+
+networks:
+    backend_network:
+      external: true
+    frontend_network:
+        external: true
+
+
 ```
 
 * **Dịch vụ Web (Flask):** Quản lý ứng dụng lõi, đọc cấu hình qua biến môi trường và tệp `.env`. Cấp quyền truy cập tệp `credentials.json` thông qua Bind Mount.
