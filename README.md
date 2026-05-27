@@ -8,7 +8,7 @@ Dự án tập trung vào việc đóng gói và triển khai tự động ứng
 - [1. Kiến trúc Đóng gói (Dockerization)](#1-kiến-trúc-đóng-gói-dockerization)
 - [2. Quy trình CI/CD (GitHub Actions)](#2-quy-trình-cicd-github-actions)
 
-- [4. Giám sát & Cảnh báo hệ thống (Monitoring & Alert Manager)](#4-giám-sát--cảnh-báo-hệ-thống-monitoring--alert-manager)
+- [3. Giám sát & Cảnh báo hệ thống (Monitoring & Alert Manager)](#3-giám-sát--cảnh-báo-hệ-thống-monitoring--alert-manager)
 
 <br><br><br>
 
@@ -190,7 +190,7 @@ Kết nối SSH tới Server vật lý, đồng bộ tệp cấu hình mới và
 ```
 
 
-### A. Triển khai tự động (CI/CD)
+### Triển khai tự động (CI/CD)
 
 1. **Chuẩn bị Secrets:** Cấu hình các biến `ENV_B64`, `CREDENTIALS_B64`, `SERVER_HOST`, `SERVER_SSH_KEY` trong GitHub Repository.
 2. **Khởi chạy:** Mọi thao tác `git push` lên nhánh `main` sẽ tự động kích hoạt toàn bộ quy trình trên.
